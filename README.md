@@ -164,7 +164,7 @@ git push origin v1.1.0
 
 What this project is, in plain English
 
-Imagine a university research department where 50 scientists all need to run heavy computations — climate simulations, protein folding, machine learning training runs. They can't all run these on their laptops, so the university buys a cluster: a group of powerful computers all connected together that scientists can submit work to. Someone has to build that cluster, keep it running, decide who gets resources when, make sure it's secure, and fix it when it breaks. That person is an HPC systems administrator, and this project proves you can do that job.
+Imagine a university research department where 50 scientists all need to run heavy computations — climate simulations, protein folding, machine learning training runs. They can't all run these on their laptops, so the university buys a cluster: a group of powerful computers all connected together that scientists can submit work to. Someone has to build that cluster, keep it running, decide who gets resources when, make sure it's secure, and fix it when it breaks. That person is an HPC systems administrator, and this project proves I can do that job.
 What I built is a miniature version of exactly that environment, running entirely inside a GitHub Codespace. Instead of 500 physical servers in a data center, I have Docker containers simulating the nodes. But every single piece of software, every config file, every security policy — it's all real production tooling, just running at a smaller scale.
 
 Why each piece exists

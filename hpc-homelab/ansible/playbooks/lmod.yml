@@ -1,0 +1,50 @@
+---
+- name: Install and configure Lmod
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install Lmod and Lua deps
+      package:
+        name:
+          - lmod
+          - lua
+          - lua-posix
+        state: present
+
+    - name: Create modulefile root
+      file:
+        path: /opt/modulefiles
+        state: directory
+        mode: "0755"
+
+    - name: Create GCC modulefile dir
+      file:
+        path: /opt/modulefiles/gcc
+        state: directory
+        mode: "0755"
+
+    - name: Deploy GCC 12.3.0 modulefile
+      copy:
+        src: ../../lmod/gcc/12.3.0.lua
+        dest: /opt/modulefiles/gcc/12.3.0.lua
+        mode: "0644"
+
+    - name: Create OpenMPI modulefile dir
+      file:
+        path: /opt/modulefiles/openmpi
+        state: directory
+        mode: "0755"
+
+    - name: Deploy OpenMPI 4.1 modulefile
+      copy:
+        src: ../../lmod/openmpi/4.1.lua
+        dest: /opt/modulefiles/openmpi/4.1.lua
+        mode: "0644"
+
+    - name: Add MODULEPATH to system profile
+      lineinfile:
+        path: /etc/profile.d/lmod.sh
+        line: "export MODULEPATH=/opt/modulefiles:$MODULEPATH"
+        create: true
+        mode: "0644"

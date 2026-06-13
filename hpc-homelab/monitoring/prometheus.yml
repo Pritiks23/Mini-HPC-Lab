@@ -1,0 +1,58 @@
+# =========================================================
+# prometheus.yml — metrics collection for HPC cluster
+# Scrapers: node_exporter, slurm-exporter, cAdvisor
+# =========================================================
+
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: homelab
+
+rule_files:
+  - /etc/prometheus/alerts/*.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+
+  - job_name: "node"
+    static_configs:
+      - targets:
+          - "node01:9100"
+          - "node02:9100"
+          - "node03:9100"
+          - "slurmctld:9100"
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: "([^:]+):.*"
+        target_label: instance
+        replacement: "$1"
+
+  - job_name: "slurm"
+    static_configs:
+      - targets: ["slurmctld:8080"]
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "slurmctld"
+
+  - job_name: "cadvisor"
+    static_configs:
+      - targets:
+          - "node01:8081"
+          - "node02:8081"
+          - "node03:8081"
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: "([^:]+):.*"
+        target_label: instance
+        replacement: "$1"
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

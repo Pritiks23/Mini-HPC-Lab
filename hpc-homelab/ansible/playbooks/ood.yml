@@ -1,0 +1,59 @@
+---
+- name: Deploy Open OnDemand
+  hosts: ondemand
+  become: true
+
+  tasks:
+    - name: Add OOD repo (RHEL/Rocky)
+      yum_repository:
+        name: ood
+        description: Open OnDemand
+        baseurl: https://yum.osc.edu/ondemand/3.1/web/el8/x86_64/
+        gpgcheck: false
+        enabled: true
+
+    - name: Install ondemand package
+      package:
+        name: ondemand
+        state: present
+
+    - name: Create cluster config directory
+      file:
+        path: /etc/ood/config/clusters.d
+        state: directory
+        mode: "0755"
+
+    - name: Deploy cluster connection config
+      copy:
+        content: |
+          ---
+          v2:
+            metadata:
+              title: "HPC Homelab"
+            login:
+              host: slurmctld
+            job:
+              adapter: slurm
+              cluster: homelab
+              bin: /usr/bin
+              conf: /etc/slurm/slurm.conf
+            batch_connect:
+              template: basic
+        dest: /etc/ood/config/clusters.d/homelab.yml
+        mode: "0644"
+
+    - name: Enable and start OOD (Apache)
+      service:
+        name: httpd
+        state: started
+        enabled: true
+
+    - name: Configure OOD portal title
+      lineinfile:
+        path: /etc/ood/config/ood_portal.yml
+        line: "title: 'HPC Homelab Portal'"
+        create: true
+
+    - name: Restart OOD to pick up config
+      command: /opt/ood/ood-portal-generator/bin/update_ood_portal
+      changed_when: false

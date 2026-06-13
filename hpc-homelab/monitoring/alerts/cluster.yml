@@ -1,0 +1,65 @@
+# =========================================================
+# cluster.yml — Prometheus alerting rules for HPC cluster
+# Fires to Alertmanager → email/Slack/PagerDuty
+# =========================================================
+
+groups:
+
+  - name: hpc.nodes
+    rules:
+
+      - alert: NodeDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: hpc-ops
+        annotations:
+          summary: "Compute node {{ $labels.instance }} is down"
+          description: >
+            Node {{ $labels.instance }} has been unreachable for 2 minutes.
+            Run: scontrol update NodeName={{ $labels.instance }} State=DOWN Reason=unreachable
+          runbook: "https://wiki.internal/runbooks/node-down"
+
+      - alert: NodeHighCPU
+        expr: 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 10m
+        labels:
+          severity: warning
+          team: hpc-ops
+        annotations:
+          summary: "Node {{ $labels.instance }} CPU > 90% for 10m"
+          description: "Possible runaway job. Check: squeue -w {{ $labels.instance }}"
+
+  - name: hpc.scheduler
+    rules:
+
+      - alert: QueueDepthHigh
+        expr: slurm_queue_total{state="PENDING"} > 20
+        for: 5m
+        labels:
+          severity: warning
+          team: hpc-ops
+        annotations:
+          summary: "Slurm queue depth {{ $value }} pending jobs"
+          description: "Large job backlog may indicate node failures or under-provisioning."
+
+      - alert: QueueDepthCritical
+        expr: slurm_queue_total{state="PENDING"} > 50
+        for: 5m
+        labels:
+          severity: critical
+          team: hpc-ops
+        annotations:
+          summary: "Critical Slurm queue depth: {{ $value }} pending jobs"
+          description: "Investigate immediately: squeue -t PD --sort=+i | head -20"
+
+      - alert: JobWaitTimeHigh
+        expr: slurm_job_seconds_total{state="PENDING"} / ignoring(state) slurm_queue_total{state="PENDING"} > 600
+        for: 5m
+        labels:
+          severity: warning
+          team: hpc-ops
+        annotations:
+          summary: "Average job wait time > 10 minutes"
+          description: "Researcher experience degrading. Review partition limits and fairshare."

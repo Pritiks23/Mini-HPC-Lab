@@ -1,0 +1,52 @@
+# =========================================================
+# hpc.rules — auditd rules for HPC cluster nodes
+# Compliance: NIST 800-53 AU controls, CIS Linux Benchmark
+# Load with: auditctl -R /etc/audit/rules.d/hpc.rules
+# =========================================================
+
+# Remove existing rules on load
+-D
+
+# Buffer size — increase if events are lost under heavy load
+-b 8192
+
+# Failure mode: 1=log, 2=panic (use 1 in production)
+-f 1
+
+# --- User/group management changes ---
+-w /etc/passwd  -p wa -k identity_change
+-w /etc/shadow  -p wa -k identity_change
+-w /etc/group   -p wa -k identity_change
+-w /etc/gshadow -p wa -k identity_change
+-w /etc/sudoers -p wa -k priv_escalation
+-w /etc/sudoers.d/ -p wa -k priv_escalation
+
+# --- Authentication events ---
+-w /var/log/auth.log     -p wa -k auth_events
+-w /var/log/secure       -p wa -k auth_events
+-w /var/run/faillock/    -p wa -k auth_failure
+
+# --- Slurm config integrity ---
+-w /etc/slurm/slurm.conf    -p wa -k slurm_config_change
+-w /etc/slurm/slurmdbd.conf -p wa -k slurm_config_change
+-w /usr/bin/scontrol        -p x  -k slurm_admin_cmd
+-w /usr/bin/sacctmgr        -p x  -k slurm_admin_cmd
+
+# --- Privileged command execution (setuid/setgid binaries) ---
+-a always,exit -F arch=b64 -S execve -F euid=0 -F auid>=1000 -k priv_exec
+-a always,exit -F arch=b32 -S execve -F euid=0 -F auid>=1000 -k priv_exec
+
+# --- Module load/unload (rootkit detection) ---
+-a always,exit -F arch=b64 -S init_module,finit_module,delete_module -k kernel_module
+
+# --- Network config changes ---
+-a always,exit -F arch=b64 -S sethostname,setdomainname -k network_change
+-w /etc/hosts      -p wa -k network_change
+-w /etc/resolv.conf -p wa -k network_change
+
+# --- SSH key changes ---
+-w /root/.ssh/         -p wa -k ssh_keys
+-w /home/              -p wa -k user_home
+
+# Lock audit config (cannot be changed without reboot)
+-e 2

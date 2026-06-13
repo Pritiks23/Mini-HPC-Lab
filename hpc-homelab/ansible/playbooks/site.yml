@@ -1,0 +1,26 @@
+---
+- name: Deploy HPC homelab cluster
+  hosts: all
+  gather_facts: true
+
+- import_playbook: slurm.yml
+- import_playbook: lmod.yml
+- import_playbook: ood.yml
+- import_playbook: hardening.yml
+
+- name: Verify cluster health post-deploy
+  hosts: slurm_controller
+  tasks:
+    - name: Check sinfo returns nodes
+      command: sinfo --noheader
+      register: sinfo_out
+      changed_when: false
+
+    - name: Fail if no nodes registered
+      fail:
+        msg: "No Slurm nodes found after deployment!"
+      when: sinfo_out.stdout == ""
+
+    - name: Print partition summary
+      debug:
+        var: sinfo_out.stdout_lines
